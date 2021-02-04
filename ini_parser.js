@@ -4,6 +4,26 @@ var sectionNameRegex = /\[(.*)]$/;
 var comments = [";", "#"]
 var delimiter = ["=", ":"]
 
+var ILLEGAL_KEYS = ['__proto__']
+
+function isIllegalKey (key) {
+  return ILLEGAL_KEYS.indexOf(key) !== -1
+}
+
+function isProtoPath (path) {
+  return Array.isArray(path)
+    ? path.some(isIllegalKey)
+    : typeof path === 'string'
+      ? isIllegalKey(path)
+      : false
+}
+
+function disallowProtoPath (path) {
+  if (isProtoPath(path)) {
+    throw new Error('Unsafe path encountered: ' + path)
+  }
+}
+
 function IniParser(path, encoding) {
     this.path = path
     this.encoding = encoding || "UTF8"
@@ -39,6 +59,7 @@ function IniParser(path, encoding) {
             var matchArr = line.match(sectionNameRegex)
             if (line.startsWith('[') && matchArr != null) {
                 curSection = matchArr[1]
+                disallowProtoPath(curSection)
                 if (!(curSection in this.configs)) {
                     this.configs[curSection] = {}
                     // contents.push(rowContent('section', curSection, '', curSection))
